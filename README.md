@@ -1,201 +1,286 @@
-# Foundry NFT
+```md
+# 🤖 Robot On-Chain NFT Collection
 
-This is a section of the Cyfrin Foundry Solidity Course.
+A fully **on-chain SVG NFT** collection deployed on **Ethereum Sepolia**.  
+Every Robot’s metadata and image live entirely on-chain — no IPFS, no servers, no gateways.
 
-*[⭐️ (7:40:56) | Lesson 11: Foundry NFT](https://www.youtube.com/watch?v=sas02qSFZ74&t=27656s)*
+---
 
-We go through creating 2 different kinds of NFTs.
+The files below are extracted directly from the on-chain metadata for preview purposes.
 
-1. An IPFS Hosted NFT 
-2. An SVG NFT (Hosted 100% on-chain) 
+<div align="center">
+  <img src="images/robots/robot_01.svg" width="150" />
+  <img src="images/robots/robot_02.svg" width="150" />
+  <img src="images/robots/robot_05.svg" width="150" />
+  <img src="images/robots/robot_10.svg" width="150" />
+  <img src="images/robots/robot_15.svg" width="150" />
+</div>
 
-<br/>
-<p align="center">
-<img src="./images/dogNft/pug.png" width="225" alt="NFT Pug">
-<img src="./images/dynamicNft/happy.svg" width="225" alt="NFT Happy">
-<img src="./images/dogNft/shiba-inu.png" width="225" alt="NFT Shiba">
-<img src="./images/dynamicNft/sad.svg" width="225" alt="NFT Frown">
-<img src="./images/dogNft/st-bernard.png" width="225" alt="NFT St.Bernard">
-</p>
-<br/>
+---
 
-- [Foundry NFT](#foundry-nft)
-- [Getting Started](#getting-started)
-  - [Requirements](#requirements)
-  - [Quickstart](#quickstart)
-    - [Optional Gitpod](#optional-gitpod)
-- [Usage](#usage)
-  - [Start a local node](#start-a-local-node)
-  - [Deploy](#deploy)
-  - [Deploy - Other Network](#deploy---other-network)
-  - [Testing](#testing)
-    - [Test Coverage](#test-coverage)
-- [Deployment to a testnet or mainnet](#deployment-to-a-testnet-or-mainnet)
-  - [Scripts](#scripts)
-  - [Base64](#base64)
-  - [Estimate gas](#estimate-gas)
-- [Formatting](#formatting)
-- [Thank you!](#thank-you)
+This project demonstrates how to build production-grade, gas-efficient, immutable NFTs using:
 
-# Getting Started
+- Pure Solidity SVG generation  
+- Base64-encoded JSON metadata  
+- A dedicated on-chain SVG storage contract  
+- Deterministic token → art mapping  
+- Foundry for scripting, testing, and deployment  
 
-## Requirements
+---
 
-- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-  - You'll know you did it right if you can run `git --version` and you see a response like `git version x.x.x`
-- [foundry](https://getfoundry.sh/)
-  - You'll know you did it right if you can run `forge --version` and you see a response like `forge 0.2.0 (816e00b 2023-03-16T00:05:26.396218Z)`
+## 🔗 Live Contracts (Sepolia)
 
+### Robot NFT (ERC721)
+```
 
-## Quickstart
+0x37B38ed26cD551C0A2C1c96A2Cf106E8D080e0e0
 
 ```
-git clone https://github.com/Cyfrin/foundry-nft-cu
-cd foundry-nft-cu
+Explorer:  
+https://sepolia.etherscan.io/address/0x37B38ed26cD551C0A2C1c96A2Cf106E8D080e0e0
+
+### SVG Store
+```
+
+0x8f00e9946cFBec7516926aCd1638e5Ff96c26Cdf
+
+```
+Explorer:  
+https://sepolia.etherscan.io/address/0x8f00e9946cFBec7516926aCd1638e5Ff96c26Cdf
+
+---
+
+## 🧠 Architecture
+
+```
+
+┌───────────────┐
+│   RobotNft    │
+│  (ERC721)     │
+│               │
+│ tokenURI() ───┼──► JSON (on-chain)
+│               │        └─ image: data:image/svg+xml;base64,...
+│               │
+│ tokenToSvgIdx │
+└───────┬───────┘
+│
+▼
+┌──────────────────┐
+│ RobotSvgsStore   │
+│ (on-chain SVGs)  │
+│                  │
+│ getSvg(index)    │
+└──────────────────┘
+
+````
+
+- `RobotNft` mints tokens and stores:
+  - owner
+  - `tokenId → svgIndex`
+- `RobotSvgsStore` holds a library of base SVG templates.
+- `tokenURI()` builds **JSON + SVG entirely on-chain**, encodes it in Base64, and returns a `data:` URI.
+
+No external dependencies. No mutable off-chain state.
+
+---
+
+## 🧩 Byte-Size Optimization Strategy
+
+Storing full SVGs per NFT is expensive. This project solves that by:
+
+1. **Separating concerns**
+   - `RobotSvgsStore` holds reusable SVG templates.
+   - `RobotNft` only stores a small `uint256 svgIndex`.
+
+2. **Reusing art**
+   - Many tokens can reference the same SVG.
+   - Only *indices* are stored per token.
+
+3. **Dynamic Assembly**
+   - Metadata is constructed in-memory in `tokenURI()`.
+   - SVG is fetched from `RobotSvgsStore`.
+   - JSON is built and Base64-encoded on the fly.
+
+This reduces:
+- Storage writes  
+- Deployment cost  
+- Mint gas  
+- Long-term chain bloat  
+
+While still being **100% on-chain**.
+
+---
+
+## 🖼 What “Fully On-Chain” Means
+
+Each token returns:
+
+```json
+{
+  "name": "Robot #1",
+  "description": "A robot NFT",
+  "image": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMjAwJyBoZW..."
+}
+````
+
+The browser or marketplace decodes it directly from the blockchain.
+
+There is **no**:
+
+* IPFS
+* Arweave
+* CDN
+* API
+* Gateway
+
+If Ethereum exists, your NFT exists.
+
+---
+
+## ⚙️ Core Features
+
+* ERC721 compliant
+* On-chain SVG rendering
+* Deterministic art mapping
+* Gas-optimized storage
+* Owner-controlled minting
+* Production-ready errors & events
+* Foundry-based deployment
+
+---
+
+## 📈 Pros & Cons of On-Chain NFTs
+
+### ✅ Pros
+
+* Permanent & censorship-resistant
+* Zero external dependencies
+* Immune to broken links
+* Trust-minimized
+* Ideal for generative art
+* True decentralization
+
+### ⚠️ Cons
+
+* Higher deployment cost
+* Limited by EVM gas constraints
+* Complex string manipulation
+* Large art sets can become expensive
+
+This architecture balances both worlds by reusing SVGs and storing only indices per token.
+
+---
+
+## 🧪 Local Setup
+
+### Install Foundry
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+### Clone & Install
+
+```bash
+git clone https://github.com/terymoney/Onchain-NFTs.git
+cd Onchain-NFTs
 forge install
-forge build
 ```
 
-### Optional Gitpod
+### Run Tests
 
-If you can't or don't want to run and install locally, you can work with this repo in Gitpod. If you do this, you can skip the `clone this repo` part.
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#github.com/PatrickAlphaC/foundry-foundry-nft-cu)
-
-# Usage
-
-## Start a local node
-
-```
-make anvil
-```
-
-## Deploy
-
-This will default to your local node. You need to have it running in another terminal in order for it to deploy.
-
-```
-make deploy
-```
-
-## Deploy - Other Network
-
-[See below](#deployment-to-a-testnet-or-mainnet)
-
-## Testing
-
-We talk about 4 test tiers in the video. 
-
-1. Unit
-2. Integration
-3. Forked
-4. Staging
-
-This repo we cover #1 and #3. 
-
-```
-forge test
-```
-
-or 
-
-```
-forge test --fork-url $SEPOLIA_RPC_URL
-```
-
-### Test Coverage
-
-```
+```bash
+forge test -vv
 forge coverage
 ```
 
+---
 
-# Deployment to a testnet or mainnet
+## 🚀 Deployment
 
-1. Setup environment variables
+Create a `.env` file:
 
-You'll want to set your `SEPOLIA_RPC_URL` and `PRIVATE_KEY` as environment variables. You can add them to a `.env` file, similar to what you see in `.env.example`.
-
-- `PRIVATE_KEY`: The private key of your account (like from [metamask](https://metamask.io/)). **NOTE:** FOR DEVELOPMENT, PLEASE USE A KEY THAT DOESN'T HAVE ANY REAL FUNDS ASSOCIATED WITH IT.
-  - You can [learn how to export it here](https://metamask.zendesk.com/hc/en-us/articles/360015289632-How-to-Export-an-Account-Private-Key).
-- `SEPOLIA_RPC_URL`: This is url of the goerli testnet node you're working with. You can get setup with one for free from [Alchemy](https://alchemy.com/?a=673c802981)
-
-Optionally, add your `ETHERSCAN_API_KEY` if you want to verify your contract on [Etherscan](https://etherscan.io/).
-
-1. Get testnet ETH
-
-Head over to [faucets.chain.link](https://faucets.chain.link/) and get some tesnet ETH. You should see the ETH show up in your metamask.
-
-2. Deploy (IPFS NFT)
-
-```
-make deploy ARGS="--network sepolia"
+```bash
+SEPOLIA_RPC_URL=your_rpc_url
+PRIVATE_KEY=your_private_key
+ETHERSCAN_API_KEY=your_etherscan_key
 ```
 
-3. Deploy (SVG NFT)
+Deploy:
 
-```
-make deploySvg ARGS="--network sepolia"
-```
-
-## Scripts
-
-After deploy to a testnet or local net, you can run the scripts. 
-
-Using cast deployed locally example: 
-
-```
-cast send <RAFFLE_CONTRACT_ADDRESS> "enterRaffle()" --value 0.1ether --private-key <PRIVATE_KEY> --rpc-url $SEPOLIA_RPC_URL
+```bash
+forge script script/DeployRobotNft.s.sol:DeployRobotNft \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $ETHERSCAN_API_KEY \
+  -vvvv
 ```
 
-or, to create a ChainlinkVRF Subscription:
+Mint robots:
 
-```
-make createSubscription ARGS="--network sepolia"
-```
-
-## Base64
-
-To get the base64 of an image, you can use the following command:
-
-```
-echo "data:image/svg+xml;base64,$(base64 -i ./images/dynamicNft/happy.svg)"
+```bash
+forge script script/MintRobotNft.s.sol:MintRobotNft \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
 ```
 
-Then, you can get the base64 encoding of the json object by placing the imageURI into `happy_image_uri.json` then running:
+---
 
-```
-echo "data:application/json;base64,$(base64 -i ./images/dynamicNft/happy_image_uri.json)"
-```
+## 🛠 Useful Commands
 
+### Inspect ownership
 
-## Estimate gas
-
-You can estimate how much gas things cost by running:
-
-```
-forge snapshot
+```bash
+cast call --rpc-url $SEPOLIA_RPC_URL $ROBOT_NFT "ownerOf(uint256)(address)" 1
 ```
 
-And you'll see and output file called `.gas-snapshot`
+### Decode token metadata
 
-
-# Formatting
-
-
-To run code formatting:
-```
-forge fmt
+```bash
+cast call --rpc-url $SEPOLIA_RPC_URL $ROBOT_NFT "tokenURI(uint256)(string)" 1 \
+| sed 's/^"//; s/"$//' \
+| sed 's/^data:application\/json;base64,//' \
+| base64 -d
 ```
 
+### Extract SVG to file
 
-# Thank you!
+```bash
+cast call --rpc-url "$SEPOLIA_RPC_URL" "$ROBOT_NFT" "tokenURI(uint256)(string)" 1 \
+| sed 's/^"//; s/"$//' \
+| sed 's/^data:application\/json;base64,//' \
+| base64 -d \
+| sed -n 's/.*"image":"data:image\/svg+xml;base64,\([^"]*\)".*/\1/p' \
+| base64 -d > robot1.svg
+```
 
-If you appreciated this, feel free to follow me or donate!
+---
 
-ETH/Arbitrum/Optimism/Polygon/etc Address: 0x9680201d9c93d65a3603d2088d125e955c73BD65
+## 🎯 Why This Project Matters
 
-[![Patrick Collins Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/PatrickAlphaC)
-[![Patrick Collins YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/channel/UCn-3f8tw_E1jZvhuHatROwA)
-[![Patrick Collins Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/patrickalphac/)
-[![Patrick Collins Medium](https://img.shields.io/badge/Medium-000000?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@patrick.collins_58673/)
+This project demonstrates:
+
+* Deep understanding of ERC721 internals
+* Advanced string & byte manipulation in Solidity
+* On-chain art architecture
+* Gas-aware design
+* Production deployment using Foundry
+
+It’s not a “mint from IPFS” NFT.
+It’s a **protocol-grade on-chain asset system**.
+
+Perfect for portfolios, audits, and serious Web3 engineering roles.
+
+---
+
+## 🧑‍💻 Author
+
+**Maria Terese Ezeobi**
+Smart Contract Developer
+Solidity • Foundry • On-Chain Systems
+
+```
