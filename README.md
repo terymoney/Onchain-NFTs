@@ -8,13 +8,13 @@ Every Robot’s metadata and image live entirely on-chain — no IPFS, no server
 
 The files below are extracted directly from the on-chain metadata for preview purposes.
 
-<div align="center">
+<p align="center">
   <img src="images/robots/robot_01.svg" width="150" />
   <img src="images/robots/robot_02.svg" width="150" />
   <img src="images/robots/robot_05.svg" width="150" />
   <img src="images/robots/robot_10.svg" width="150" />
   <img src="images/robots/robot_15.svg" width="150" />
-</div>
+</p>
 
 ---
 
