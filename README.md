@@ -273,8 +273,6 @@ This project demonstrates:
 It’s not a “mint from IPFS” NFT.
 It’s a **protocol-grade on-chain asset system**.
 
-Perfect for portfolios, audits, and serious Web3 engineering roles.
-
 ---
 
 ## 🧑‍💻 Author
